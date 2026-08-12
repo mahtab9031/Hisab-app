@@ -167,14 +167,4 @@ function restoreData(event){
       localStorage.setItem('hisab_tx',JSON.stringify(tx));
       render();
       alert('Backup successfully restore ho gaya.');
-    }catch(e){alert('Backup file valid nahi hai.');}
-    event.target.value='';
-  };
-  reader.readAsText(file);
-}
-if(localStorage.getItem('hisab_faceid')==='on') faceStatus.textContent='On ✓';
-
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-render();
-</script>
-</body></html>
+    }catch(e){alert('Backup 
