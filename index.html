@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>Real Estate Investment Hisab</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7f8;color:#17202a}
+header{background:#0f766e;color:white;padding:18px 15px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:21px} header p{margin:5px 0 0;font-size:12px;opacity:.9}
+.container{max-width:900px;margin:auto;padding:14px}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.card{background:white;border-radius:12px;padding:14px;box-shadow:0 2px 8px #0001}
+.card small{color:#667;font-size:12px}.card b{display:block;font-size:20px;margin-top:6px}
+form{background:white;padding:15px;border-radius:12px;box-shadow:0 2px 8px #0001;margin-bottom:14px}
+h2{font-size:17px;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+label{font-size:12px;color:#566;display:block;margin-bottom:4px}
+input,select,button{width:100%;padding:11px;border:1px solid #ccd5d8;border-radius:8px;font-size:14px}
+button{border:0;background:#0f766e;color:white;font-weight:bold;cursor:pointer}
+button.secondary{background:#64748b}button.danger{background:#dc2626}button.edit{background:#2563eb}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px #0001}
+th,td{padding:10px 8px;border-bottom:1px solid #eee;text-align:left;font-size:12px}
+th{background:#e8f3f1;color:#075e58} .in{color:#15803d;font-weight:bold}.out{color:#dc2626;font-weight:bold}
+.rowbtn{padding:7px;font-size:11px;margin:2px;width:auto}
+.empty{text-align:center;color:#777;padding:25px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}th:nth-child(4),td:nth-child(4){display:none}}
+</style>
+</head>
+<body>
+<header><h1>🏠 Real Estate Investment Hisab</h1><p>Investment • Len-den • Expense • Profit/Loss</p></header>
+<div class="container">
+<div class="cards">
+<div class="card"><small>Total Investment</small><b id="investment">₹0</b></div>
+<div class="card"><small>Total Received</small><b id="received">₹0</b></div>
+<div class="card"><small>Total Expense</small><b id="expense">₹0</b></div>
+<div class="card"><small>Profit / Loss</small><b id="profit">₹0</b></div>
+</div>
+
+<form id="entryForm">
+<h2 id="formTitle">➕ New Entry</h2>
+<div class="grid">
+<div><label>Property / Plot Name</label><input id="property" required placeholder="जैसे Green City Plot"></div>
+<div><label>Entry Type</label>
+<select id="type"><option value="investment">Investment / खरीद</option><option value="received">Received / बिक्री</option><option value="expense">Expense / खर्च</option></select></div>
+<div><label>Amount (₹)</label><input id="amount" type="number" min="0" step="0.01" required placeholder="0"></div>
+<div><label>Date</label><input id="date" type="date" required></div>
+<div><label>Party / Person</label><input id="party" placeholder="नाम"></div>
+<div><label>Note</label><input id="note" placeholder="विवरण"></div>
+</div>
+<div class="actions">
+<button type="submit" id="saveBtn">💾 Save Entry</button>
+<button type="button" class="secondary" id="cancelBtn" style="display:none">Cancel Edit</button>
+</div>
+</form>
+
+<h2>📋 All Transactions</h2>
+<table>
+<thead><tr><th>Date</th><th>Property</th><th>Type</th><th>Amount</th><th>Party</th><th>Action</th></tr></thead>
+<tbody id="list"></tbody>
+</table>
+</div>
+
+<script>
+const KEY="real_estate_hisab_v1";
+let entries=JSON.parse(localStorage.getItem(KEY)||"[]");
+let editId=null;
+const $=id=>document.getElementById(id);
+$("date").value=new Date().toISOString().slice(0,10);
+
+function money(n){return "₹"+Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:2});}
+function save(){localStorage.setItem(KEY,JSON.stringify(entries));render();}
+function render(){
+ let inv=0,rec=0,exp=0;
+ entries.forEach(e=>{if(e.type==="investment")inv+=+e.amount;if(e.type==="received")rec+=+e.amount;if(e.type==="expense")exp+=+e.amount});
+ $("investment").textContent=money(inv);$("received").textContent=money(rec);$("expense").textContent=money(exp);
+ const p=rec-inv-exp;$("profit").textContent=(p>=0?"":"-")+money(Math.abs(p));
+ const tbody=$("list");tbody.innerHTML="";
+ if(!entries.length){tbody.innerHTML='<tr><td colspan="6" class="empty">अभी कोई entry नहीं है</td></tr>';return}
+ [...entries].reverse().forEach(e=>{
+  const tr=document.createElement("tr");
+  const label={investment:"Investment",received:"Received",expense:"Expense"}[e.type];
+  tr.innerHTML=`<td>${e.date||""}</td><td>${esc(e.property)}</td><td>${label}</td><td class="${e.type==='received'?'in':'out'}">${money(e.amount)}</td><td>${esc(e.party)}</td><td><button class="rowbtn edit" onclick="editEntry('${e.id}')">Edit</button><button class="rowbtn danger" onclick="deleteEntry('${e.id}')">Delete</button></td>`;
+  tbody.appendChild(tr);
+ });
+}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+$("entryForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const data={property:$("property").value.trim(),type:$("type").value,amount:Number($("amount").value),date:$("date").value,party:$("party").value.trim(),note:$("note").value.trim()};
+ if(!data.property||!data.amount){alert("Property और Amount भरें");return}
+ if(editId){entries=entries.map(x=>x.id===editId?{...x,...data}:x);editId=null;$("formTitle").textContent="➕ New Entry";$("saveBtn").textContent="💾 Save Entry";$("cancelBtn").style.display="none";}
+ else entries.push({id:Date.now().toString(),...data});
+ $("entryForm").reset();$("date").value=new Date().toISOString().slice(0,10);save();
+});
+window.editEntry=id=>{
+ const e=entries.find(x=>x.id===id);if(!e)return;
+ editId=id;$("property").value=e.property;$("type").value=e.type;$("amount").value=e.amount;$("date").value=e.date;$("party").value=e.party;$("note").value=e.note;
+ $("formTitle").textContent="✏️ Edit Entry";$("saveBtn").textContent="Update Entry";$("cancelBtn").style.display="block";window.scrollTo({top:0,behavior:"smooth"});
+};
+window.deleteEntry=id=>{if(confirm("Ye entry delete karni hai?")){entries=entries.filter(x=>x.id!==id);save();}};
+$("cancelBtn").onclick=()=>{editId=null;$("entryForm").reset();$("date").value=new Date().toISOString().slice(0,10);$("formTitle").textContent="➕ New Entry";$("saveBtn").textContent="💾 Save Entry";$("cancelBtn").style.display="none";};
+render();
+</script>
+</body>
+</html>
